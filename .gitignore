@@ -15,3 +15,4 @@ artifacts
 .node_modules.lock
 .DS_Store
 AGENTS.md
+.env*
