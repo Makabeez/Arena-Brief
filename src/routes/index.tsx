@@ -5,6 +5,8 @@ import { BriefView } from "@/components/views/brief";
 import { DispatchView } from "@/components/views/dispatch";
 import { OpsView } from "@/components/views/ops";
 import { TradesView } from "@/components/views/trades";
+import { VerifyView } from "@/components/views/verify";
+import { walletFromUrl } from "@/lib/chain/share";
 import { Mark } from "@/components/mark";
 import { useArenaStore } from "@/lib/store";
 
@@ -16,6 +18,8 @@ function Home() {
   useEffect(() => {
     let alive = true;
     const done = () => {
+      // A share link (?wallet=…) opens straight on the on-chain check.
+      if (walletFromUrl()) useArenaStore.getState().setView("verify");
       if (alive) setReady(true);
     };
     const result = useArenaStore.persist.rehydrate();
@@ -49,6 +53,7 @@ function Desk() {
       {view === "brief" ? <BriefView /> : null}
       {view === "ops" ? <OpsView /> : null}
       {view === "trades" ? <TradesView /> : null}
+      {view === "verify" ? <VerifyView /> : null}
       {view === "dispatch" ? <DispatchView /> : null}
     </Shell>
   );

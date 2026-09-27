@@ -3,6 +3,7 @@ import { persist } from "zustand/middleware";
 import {
   CLOSE_AT,
   MIN_TRADES,
+  PUBLIC_URL,
   SWAP_MIN_USDC,
   XP_TARGET,
   type GateId,
@@ -10,7 +11,7 @@ import {
   type VenueId,
 } from "@/lib/arena";
 
-export type ViewId = "brief" | "ops" | "trades" | "dispatch";
+export type ViewId = "brief" | "ops" | "trades" | "verify" | "dispatch";
 
 export type Trade = {
   id: string;
@@ -50,6 +51,11 @@ export type ArenaData = {
   scores: Scores;
   xDraft: string;
   submissionNotes: string;
+  /** Steve agent wallet, verified against mainnet on the Verify tab. */
+  agentWallet: string;
+  /** Qualifying trades found on-chain at the last verification, or null. */
+  verifiedQualifying: number | null;
+  verifiedAt: string;
 };
 
 export type ArenaSnapshot = ArenaData;
@@ -70,6 +76,7 @@ type ArenaActions = {
   setScore: (key: keyof Scores, value: number) => void;
   setXDraft: (xDraft: string) => void;
   setSubmissionNotes: (submissionNotes: string) => void;
+  setVerified: (agentWallet: string, qualifying: number, at: string) => void;
   importData: (data: Partial<ArenaData>) => void;
   reset: () => void;
 };
@@ -111,6 +118,9 @@ export const defaultData = (): ArenaData => ({
   },
   xDraft: "",
   submissionNotes: "",
+  agentWallet: "",
+  verifiedQualifying: null,
+  verifiedAt: "",
 });
 
 export function isQualifying(trade: Trade): boolean {
@@ -131,15 +141,22 @@ export function isXPostUrl(url: string): boolean {
   return t.includes("x.com/") || t.includes("twitter.com/");
 }
 
-export function gateStatus(data: Pick<
-  ArenaData,
-  "agentCreated" | "xConnected" | "xPostUrl" | "xp" | "trades"
->): Record<GateId, boolean> {
+/** On-chain count wins when present; the manual blotter is the fallback. */
+export function tradeCount(
+  data: Pick<ArenaData, "trades"> & Partial<Pick<ArenaData, "verifiedQualifying">>,
+): number {
+  return Math.max(qualifyingCount(data.trades), data.verifiedQualifying ?? 0);
+}
+
+export function gateStatus(
+  data: Pick<ArenaData, "agentCreated" | "xConnected" | "xPostUrl" | "xp" | "trades"> &
+    Partial<Pick<ArenaData, "verifiedQualifying">>,
+): Record<GateId, boolean> {
   return {
     agent: data.agentCreated,
     xpost: data.xConnected && isXPostUrl(data.xPostUrl),
     xp: data.xp >= XP_TARGET,
-    trades: qualifyingCount(data.trades) >= MIN_TRADES,
+    trades: tradeCount(data) >= MIN_TRADES,
   };
 }
 
@@ -202,9 +219,15 @@ export function composeSubmission(data: ArenaData): string {
       .filter(Boolean)
       .join("\n\n");
 
+  const wallet = data.agentWallet.trim();
+  const proof = wallet
+    ? `On-chain check: ${data.verifiedQualifying ?? 0} qualifying trades — ${PUBLIC_URL}/?wallet=${wallet}`
+    : "";
+
   return [
     `Steve Agent handle: ${name}`,
     `X post: ${url}`,
+    ...(wallet ? [`Agent wallet: ${wallet}`, proof] : []),
     "",
     "Description:",
     desc || "—",
@@ -225,6 +248,9 @@ const DATA_KEYS: (keyof ArenaData)[] = [
   "scores",
   "xDraft",
   "submissionNotes",
+  "agentWallet",
+  "verifiedQualifying",
+  "verifiedAt",
 ];
 
 export const useArenaStore = create<ArenaState>()(
@@ -274,6 +300,8 @@ export const useArenaStore = create<ArenaState>()(
         })),
       setXDraft: (xDraft) => set({ xDraft }),
       setSubmissionNotes: (submissionNotes) => set({ submissionNotes }),
+      setVerified: (agentWallet, verifiedQualifying, verifiedAt) =>
+        set({ agentWallet, verifiedQualifying, verifiedAt }),
       importData: (data) =>
         set((s) => ({
           ...s,

@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { MIN_TRADES, SWAP_MIN_USDC, VENUES } from "@/lib/arena";
 import {
   isQualifying,
-  qualifyingCount,
+  tradeCount,
   useArenaStore,
   type Trade,
 } from "@/lib/store";
@@ -16,7 +16,10 @@ export function TradesView() {
   const addTrade = useArenaStore((s) => s.addTrade);
   const updateTrade = useArenaStore((s) => s.updateTrade);
   const removeTrade = useArenaStore((s) => s.removeTrade);
-  const qualified = qualifyingCount(trades);
+  const verifiedQualifying = useArenaStore((s) => s.verifiedQualifying);
+  const agentWallet = useArenaStore((s) => s.agentWallet);
+  const setView = useArenaStore((s) => s.setView);
+  const qualified = tradeCount({ trades, verifiedQualifying });
   const met = qualified >= MIN_TRADES;
 
   return (
@@ -39,6 +42,17 @@ export function TradesView() {
           </p>
         </div>
         <Badge variant={met ? "ok" : "default"}>{met ? "Gate closed" : "Gate open"}</Badge>
+      </section>
+
+      <section className="flex flex-col gap-3 rounded-xl bg-inset p-5 shadow-[var(--shadow-border)] sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-sm leading-relaxed text-muted">
+          {agentWallet
+            ? `On-chain: ${verifiedQualifying ?? 0} qualifying from ${agentWallet.slice(0, 4)}…${agentWallet.slice(-4)}. The gate uses whichever count is higher.`
+            : "Skip the typing — verify your agent wallet and the gate reads straight from Solana."}
+        </p>
+        <Button variant="secondary" size="sm" onClick={() => setView("verify")}>
+          {agentWallet ? "Re-check chain" : "Verify wallet"}
+        </Button>
       </section>
 
       <section className="grid gap-3 sm:grid-cols-2">

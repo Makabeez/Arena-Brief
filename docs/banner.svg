@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 300" width="1200" height="300" role="img" aria-label="Arena Brief — field desk for the Steve Agent Arena">
+  <style>
+    .bg { fill: #0c0c0b; }
+    .rule { stroke: #eceae41a; stroke-width: 1; }
+    .title { font: 400 76px "Instrument Serif", Georgia, "Times New Roman", serif; fill: #eceae4; letter-spacing: -1px; }
+    .sub { font: 500 15px "IBM Plex Mono", ui-monospace, Menlo, monospace; fill: #9c9a92; letter-spacing: 3px; }
+    .tick { font: 500 13px "IBM Plex Mono", ui-monospace, Menlo, monospace; fill: #6e6c66; letter-spacing: 1px; }
+    .ok { fill: #8aa58a; }
+    .gate { fill: none; stroke: #eceae42e; stroke-width: 1.5; }
+    .fill { fill: #8aa58a; opacity: 0; animation: close 8s infinite; }
+    .f2 { animation-delay: 0.9s; } .f3 { animation-delay: 1.8s; } .f4 { animation-delay: 2.7s; }
+    @keyframes close { 0%, 8% { opacity: 0; } 14%, 80% { opacity: 1; } 90%, 100% { opacity: 0; } }
+    .scan { fill: url(#scan); animation: sweep 8s linear infinite; }
+    @keyframes sweep { from { transform: translateX(-420px); } to { transform: translateX(1200px); } }
+    .blip { fill: #c4a574; animation: blink 1.6s steps(2, start) infinite; }
+    @keyframes blink { to { visibility: hidden; } }
+  </style>
+  <defs>
+    <linearGradient id="scan" x1="0" x2="1">
+      <stop offset="0" stop-color="#8aa58a" stop-opacity="0"/>
+      <stop offset="0.5" stop-color="#8aa58a" stop-opacity="0.10"/>
+      <stop offset="1" stop-color="#8aa58a" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect class="bg" width="1200" height="300"/>
+  <rect class="scan" x="0" y="0" width="420" height="300"/>
+  <line class="rule" x1="0" y1="60" x2="1200" y2="60"/>
+  <line class="rule" x1="0" y1="240" x2="1200" y2="240"/>
+  <text class="tick" x="72" y="40">STEVE AGENT ARENA · SOLANA MAINNET</text>
+  <circle class="blip" cx="1110" cy="35" r="4"/>
+  <text class="tick" x="1000" y="40">LIVE</text>
+  <text class="title" x="72" y="160">Arena Brief</text>
+  <text class="sub" x="76" y="205">FIELD DESK · ON-CHAIN VERIFIER</text>
+  <g transform="translate(760 118)">
+    <rect class="gate" x="0" y="0" width="64" height="64" rx="12"/>
+    <rect class="fill" x="8" y="8" width="48" height="48" rx="8"/>
+    <rect class="gate" x="84" y="0" width="64" height="64" rx="12"/>
+    <rect class="fill f2" x="92" y="8" width="48" height="48" rx="8"/>
+    <rect class="gate" x="168" y="0" width="64" height="64" rx="12"/>
+    <rect class="fill f3" x="176" y="8" width="48" height="48" rx="8"/>
+    <rect class="gate" x="252" y="0" width="64" height="64" rx="12"/>
+    <rect class="fill f4" x="260" y="8" width="48" height="48" rx="8"/>
+    <text class="tick" x="0" y="92">AGENT</text>
+    <text class="tick" x="84" y="92">X POST</text>
+    <text class="tick" x="168" y="92">2000 XP</text>
+    <text class="tick" x="252" y="92">5 TRADES</text>
+  </g>
+  <text class="tick" x="72" y="272">JUPITER · MAGICBLOCK · PHOENIX PERPS · ADRENA</text>
+</svg>

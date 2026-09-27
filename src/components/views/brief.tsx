@@ -24,7 +24,7 @@ const GATE_VIEW: Record<string, ViewId> = {
   agent: "ops",
   xpost: "dispatch",
   xp: "ops",
-  trades: "trades",
+  trades: "verify",
 };
 
 export function BriefView() {

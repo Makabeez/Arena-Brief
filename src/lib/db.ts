@@ -19,6 +19,15 @@ const databaseUrl =
 export const dbSource: DbSource = databaseUrl ? "neon" : "pglite";
 
 /**
+ * PGLite needs its WASM data file on disk. The dev server has it; a bundled
+ * production build (e.g. a Vercel Preview deploy with no DATABASE_URL) does
+ * not, and PGLite then rejects inside its own constructor — an unhandled
+ * rejection that kills the process. In a build, no DATABASE_URL means no
+ * database: callers get a clean error from getSql() and can degrade.
+ */
+const pgliteUsable = !(import.meta.env?.PROD ?? false);
+
+/**
  * Minimal shared SQL surface, satisfied by both Neon and PGLite. Both the
  * tagged-template and `.query()` forms resolve to an array of row objects:
  *
@@ -176,7 +185,11 @@ async function createSql(): Promise<Sql> {
         "or a server route loader, never from client code.",
     );
   }
-  return dbSource === "neon" ? createNeonSql() : createPgliteSql();
+  if (dbSource === "neon") return createNeonSql();
+  if (!pgliteUsable) {
+    throw new Error("DATABASE_URL is not set in this build — running without a database");
+  }
+  return createPgliteSql();
 }
 
 /**
@@ -229,10 +242,13 @@ export function ensureDbReady(): Promise<void> {
 const globalBoot = globalThis as typeof globalThis & {
   __pgBootstrapPromise__?: Promise<void>;
 };
-if (typeof window === "undefined" && dbSource === "pglite") {
+if (typeof window === "undefined" && dbSource === "pglite" && pgliteUsable) {
+  // Nothing awaits this promise, so rethrowing here is an unhandled rejection
+  // that kills the Node process (seen when a bundled build cannot find
+  // pglite.data). Log and settle; `getSql()` retries and surfaces the error to
+  // whichever caller actually needs the database.
   globalBoot.__pgBootstrapPromise__ ??= ensureDbReady().catch((err) => {
     globalBoot.__pgBootstrapPromise__ = undefined;
     console.error("[db] PGLite bootstrap failed:", err);
-    throw err;
   });
 }

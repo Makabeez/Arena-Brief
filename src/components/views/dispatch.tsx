@@ -80,7 +80,7 @@ export function DispatchView() {
   return (
     <div className="flex flex-col gap-10">
       <header className="flex flex-col gap-3">
-        <p className="font-mono text-xs uppercase tracking-widest text-subtle">04 · Dispatch</p>
+        <p className="font-mono text-xs uppercase tracking-widest text-subtle">05 · Dispatch</p>
         <h1 className="font-display text-4xl tracking-tight sm:text-5xl">Write it so it judges</h1>
         <p className="max-w-xl text-base leading-relaxed text-muted">
           Strategy notes, the required X post, and a Superteam pack: handle, post link, short

@@ -9,7 +9,8 @@ const NAV: { id: ViewId; num: string; label: string }[] = [
   { id: "brief", num: "01", label: "Brief" },
   { id: "ops", num: "02", label: "Ops" },
   { id: "trades", num: "03", label: "Trades" },
-  { id: "dispatch", num: "04", label: "Dispatch" },
+  { id: "verify", num: "04", label: "Verify" },
+  { id: "dispatch", num: "05", label: "Dispatch" },
 ];
 
 export function Shell({ children }: { children: ReactNode }) {

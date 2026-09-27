@@ -9,6 +9,9 @@ export const MIN_TRADES = 5;
 export const SWAP_MIN_USDC = 20;
 export const PRIZE_TOTAL = 500;
 
+/** Where this desk is deployed — used in share links and the submission pack. */
+export const PUBLIC_URL = "https://arena-brief-ten.vercel.app";
+
 export const LINKS = {
   steve: "https://steve.oobeprotocol.ai",
   missions: "https://steve.oobeprotocol.ai/arena#agent/arena/missions",
