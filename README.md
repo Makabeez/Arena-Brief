@@ -11,7 +11,7 @@
 ![React 19](https://img.shields.io/badge/React-19-555?style=flat-square)
 ![TanStack Start](https://img.shields.io/badge/TanStack-Start-555?style=flat-square)
 ![Postgres](https://img.shields.io/badge/Neon-Postgres-555?style=flat-square)
-![Tests](https://img.shields.io/badge/classifier_tests-12%2F12-8aa58a?style=flat-square)
+![Tests](https://img.shields.io/badge/classifier_tests-15%2F15-8aa58a?style=flat-square)
 
 </div>
 
@@ -43,7 +43,7 @@ patterns the rules exclude — before a judge does.
 | --- | --- | --- |
 | Jupiter | `JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4`, order engine `61DFfeTKM7trxYcPQCM78bJ794ddZprZpAwAnLiwTpYH` | Swap ≥ 20 USDC, sized from the USDC/USDT leg, else the SOL leg |
 | MagicBlock | `SPLxh1LVZzEkX99H6rqYizhytLWPZVV296zyYDPagv2` | Jupiter route + e-SPL = private swap (≥ 20 USDC). e-SPL alone = private transfer (mission, not a trade) |
-| Phoenix Perps | `EtrnLzgbS7nMMy5fbD42kXiUzGg8XQzJ972Xtk1cjWih` | Any order counts. A pure USDC move is a collateral deposit/withdraw and does not |
+| Phoenix Perps | `EtrnLzgbS7nMMy5fbD42kXiUzGg8XQzJ972Xtk1cjWih` | Decoded from instruction bytes (codes from Ellipsis Labs' [Rise SDK](https://github.com/Ellipsis-Labs/rise-public)). Market/limit orders count at any size; `RegisterTrader`, deposits, withdrawals, cancels and stop placements do not |
 | Adrena | `13gDzEXCdocbj8iAiqrScGo47NiSuYENGsRqi3SEAwet` | Counts when a `*Position*` instruction runs |
 
 Program IDs were checked against live mainnet traffic on 27 Sep 2026. Jupiter and Phoenix Perps
@@ -57,7 +57,7 @@ old and was staking, not trading** — the protocol is winding down, so plan per
 | Transaction history, signer check, program detection | **Real** — Solana RPC, finalized commitment |
 | Swap size from a USDC/USDT leg | **Real** — on-chain token balance deltas |
 | Swap size from a SOL-only leg | **Approximate** — priced at the SOL price *at lookup time* (Jupiter price API), marked `*` in the UI |
-| Phoenix Perps order vs. collateral move | **Heuristic** — collateral sits in program accounts, so size is not readable from wallet balances |
+| Phoenix Perps order vs. setup / collateral | **Real** — decoded from instruction data. Perp *size* is not shown: collateral sits in program accounts |
 | Loop detection | **Heuristic** — same pair reversed at ±10% size within 10 minutes |
 | Arena XP, missions, X post | **Self-reported** in the desk — the Arena does not expose them publicly |
 | Final eligibility | **The Arena's own telemetry.** This is an independent check, not the official one |

@@ -324,8 +324,9 @@ function Method({ result }: { result: VerifyResult }) {
           near {SWAP_MIN_USDC} USDC can read either side of the line.
         </li>
         <li>
-          Phoenix Perps keeps collateral in program accounts: an order counts at any size, a pure
-          USDC move is shown as a deposit or withdrawal and does not.
+          Phoenix Perps is read from the instruction bytes, using the codes in Ellipsis Labs&apos;
+          published SDK: a market or limit order counts at any size; account setup, deposits,
+          withdrawals, cancels and stop placements do not.
         </li>
         <li>
           A reversal of the same pair at a similar size within 10 minutes is flagged as a

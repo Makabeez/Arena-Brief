@@ -2,6 +2,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import {
+  b58ToHex,
   classifyTx,
   flagRoundTrips,
   isSolanaAddress,
@@ -59,12 +60,35 @@ describe("classifyTx on real mainnet transactions", () => {
     assert.match(c.reason, /unpriced/);
   });
 
-  it("counts a Phoenix Perps order at any size", () => {
-    const { tx, signer } = fixture("phoenix-perps-order");
+  it("counts a Phoenix Perps market order at any size", () => {
+    const { tx, signer } = fixture("phoenix-market-order");
     const c = classifyTx(tx, signer, OPTS);
     assert.equal(c.venue, "phoenix");
     assert.equal(c.kind, "perp");
     assert.equal(c.qualifies, true);
+    assert.match(c.reason, /PlaceMarketOrder/);
+  });
+
+  it("does not count Phoenix account setup (RegisterTrader)", () => {
+    const { tx, signer } = fixture("phoenix-register-trader");
+    const c = classifyTx(tx, signer, OPTS);
+    assert.equal(c.venue, "phoenix");
+    assert.equal(c.qualifies, false);
+    assert.match(c.reason, /RegisterTrader/);
+  });
+
+  it("does not count a Phoenix cancel", () => {
+    const { tx, signer } = fixture("phoenix-cancel-all");
+    const c = classifyTx(tx, signer, OPTS);
+    assert.equal(c.qualifies, false);
+    assert.match(c.reason, /CancelAll/);
+  });
+
+  it("decodes base58 instruction headers", () => {
+    assert.equal(b58ToHex("1"), "00");
+    assert.equal(b58ToHex("2"), "01");
+    assert.equal(b58ToHex("5Q"), "ff");
+    assert.equal(b58ToHex("5R"), "0100");
   });
 
   it("treats a MagicBlock private transfer as a mission, not a trade", () => {
@@ -106,6 +130,7 @@ function swap(sig: string, t: number, sold: string, bought: string, size: number
     bought,
     qualifies: true,
     reason: "Jupiter swap",
+    v: 2,
   };
 }
 

@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { MIN_TRADES, OPEN_AT, SWAP_MIN_USDC } from "@/lib/arena";
 import {
+  CLASSIFIER_VERSION,
   classifyTx,
   flagRoundTrips,
   isSolanaAddress,
@@ -58,7 +59,10 @@ export const verifyWallet = createServerFn({ method: "POST" })
       sql = await getSql();
       const rows = await sql<{ signature: string; classified: ClassifiedTx }>`
         select signature, classified from arena_tx where wallet = ${wallet}`;
-      for (const r of rows) known.set(r.signature, r.classified);
+      for (const r of rows) {
+        // Rows from an older classifier are ignored and fetched again.
+        if (r.classified?.v === CLASSIFIER_VERSION) known.set(r.signature, r.classified);
+      }
     } catch (err) {
       console.error("[verify] cache read failed:", err);
       sql = null;
@@ -90,7 +94,8 @@ export const verifyWallet = createServerFn({ method: "POST" })
             values (${c.signature}, ${wallet}, ${c.slot},
                     ${c.blockTime ? new Date(c.blockTime * 1000).toISOString() : null},
                     ${JSON.stringify(c)}::jsonb)
-            on conflict (signature) do nothing`;
+            on conflict (signature) do update
+              set classified = excluded.classified, fetched_at = now()`;
         }
       } catch (err) {
         console.error("[verify] cache write failed:", err);

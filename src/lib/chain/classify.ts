@@ -1,4 +1,14 @@
-import { ATA_RENT_SOL, MINTS, PROGRAMS, STABLE_MINTS } from "./programs.ts";
+import {
+  ATA_RENT_SOL,
+  MINTS,
+  PHOENIX_COLLATERAL_OPS,
+  PHOENIX_OPS,
+  PHOENIX_ORDER_OPS,
+  PHOENIX_PROXY,
+  PHOENIX_PROXY_FEE,
+  PROGRAMS,
+  STABLE_MINTS,
+} from "./programs.ts";
 
 /** The subset of a `getTransaction(jsonParsed)` result the classifier reads. */
 export type RawTx = {
@@ -12,12 +22,16 @@ export type RawTx = {
     preTokenBalances?: TokenBalance[] | null;
     postTokenBalances?: TokenBalance[] | null;
     logMessages?: string[] | null;
+    innerInstructions?: { instructions: Ix[] }[] | null;
   } | null;
   transaction: {
     signatures: string[];
-    message: { accountKeys: { pubkey: string; signer: boolean }[] };
+    message: { accountKeys: { pubkey: string; signer: boolean }[]; instructions?: Ix[] };
   };
 };
+
+/** A `jsonParsed` instruction; unparsed programs carry base58 `data`. */
+type Ix = { programId?: string; data?: string };
 
 type TokenBalance = {
   accountIndex?: number;
@@ -58,7 +72,16 @@ export type ClassifiedTx = {
   reason: string;
   /** Set later by `flagRoundTrips`. */
   roundTripOf?: string;
+  /** Classifier version that produced this row; older cached rows are re-read. */
+  v: number;
 };
+
+/**
+ * Bump whenever a rule changes so cached classifications are recomputed.
+ * v2: Phoenix Perps classified from instruction bytes (setup and cancels no
+ * longer count as orders).
+ */
+export const CLASSIFIER_VERSION = 2;
 
 export type ClassifyOptions = {
   /** SOL/USD used to price swaps with no stable leg. */
@@ -123,6 +146,40 @@ export function walletDeltas(tx: RawTx, wallet: string): { sol: number; tokens: 
   return { sol, tokens };
 }
 
+const B58 = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+
+/** Base58 → hex. Only instruction headers are needed, so a BigInt is fine. */
+export function b58ToHex(s: string): string {
+  let n = 0n;
+  for (const c of s) {
+    const v = B58.indexOf(c);
+    if (v < 0) return "";
+    n = n * 58n + BigInt(v);
+  }
+  let hex = n === 0n ? "" : n.toString(16);
+  if (hex.length % 2) hex = `0${hex}`;
+  const lead = s.length - s.replace(/^1+/, "").length;
+  return "00".repeat(lead) + hex;
+}
+
+function phoenixOpName(hex: string): string {
+  const head = hex.slice(0, 16);
+  if (head === PHOENIX_PROXY) return phoenixOpName(hex.slice(16));
+  if (head === PHOENIX_PROXY_FEE) return phoenixOpName(hex.slice(34));
+  return PHOENIX_OPS[head] ?? `unknown:${head}`;
+}
+
+/** Names of every Phoenix Perps instruction in the tx, top-level and CPI. */
+export function phoenixOps(tx: RawTx): string[] {
+  const all: Ix[] = [
+    ...(tx.transaction.message.instructions ?? []),
+    ...(tx.meta?.innerInstructions ?? []).flatMap((g) => g.instructions),
+  ];
+  return all
+    .filter((ix) => ix.programId === PROGRAMS.phoenixPerps && ix.data)
+    .map((ix) => phoenixOpName(b58ToHex(ix.data as string)));
+}
+
 function isSigner(tx: RawTx, wallet: string): boolean {
   return tx.transaction.message.accountKeys.some((k) => k.pubkey === wallet && k.signer);
 }
@@ -139,6 +196,7 @@ export function classifyTx(tx: RawTx, wallet: string, opts: ClassifyOptions): Cl
     sizeSource: "none" as ClassifiedTx["sizeSource"],
     sold: null as string | null,
     bought: null as string | null,
+    v: CLASSIFIER_VERSION,
   };
 
   if (tx.meta?.err) {
@@ -213,25 +271,38 @@ export function classifyTx(tx: RawTx, wallet: string, opts: ClassifyOptions): Cl
   }
 
   if (progs.has(PROGRAMS.phoenixPerps)) {
-    // Collateral lives in program accounts, so an order leaves no token delta on
-    // the wallet. A pure USDC move with nothing else is a deposit or withdrawal.
-    const onlyStable =
-      tokens.length > 0 && tokens.every((t) => STABLE_MINTS.has(t.mint)) && Math.abs(sol) < 0.01;
-    if (onlyStable) {
+    // Phoenix logs no instruction name for most calls and keeps collateral in
+    // program accounts, so decode the instruction bytes. Only an order counts:
+    // account setup, deposits, cancels and stop placements do not.
+    const ops = phoenixOps(tx);
+    const order = ops.find((o) => PHOENIX_ORDER_OPS.has(o));
+    if (order) {
+      return {
+        ...d,
+        venue: "phoenix",
+        kind: "perp",
+        qualifies: true,
+        reason: `Phoenix Perps ${order} — perps qualify at any size`,
+      };
+    }
+    const collateral = ops.find((o) => PHOENIX_COLLATERAL_OPS.has(o));
+    if (collateral) {
       return {
         ...d,
         venue: "phoenix",
         kind: "collateral",
         qualifies: false,
-        reason: "Phoenix Perps collateral move (deposit / withdraw)",
+        reason: `Phoenix Perps ${collateral} — collateral, not a trade`,
       };
     }
     return {
       ...d,
       venue: "phoenix",
-      kind: "perp",
-      qualifies: true,
-      reason: "Phoenix Perps order — perps qualify at any size",
+      kind: "other",
+      qualifies: false,
+      reason: ops.length
+        ? `Phoenix Perps ${ops[0]} — not an order`
+        : "Phoenix Perps call with no decodable instruction — not counted",
     };
   }
 
